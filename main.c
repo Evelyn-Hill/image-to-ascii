@@ -5,12 +5,16 @@
  *
  */
 
+#include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize2.h"
 
@@ -20,6 +24,7 @@ void ConvertToAscii(char path[60]) {
   FILE *pF = fopen("output.txt", "w");
 
   int width, height, channels;
+
   // Get image data.
   unsigned char *image = stbi_load(path, &width, &height, &channels, 0);
 
@@ -27,24 +32,29 @@ void ConvertToAscii(char path[60]) {
          height, channels);
 
   size_t image_size = width * height * channels;
+
   // Need to half the image size for easier viewing.
   // Defining the memory allocation for the new image.
-  int newSizeX = width / 2;
 
-  int newSizeY = width / 2;
-
+  int newSizeX =
+      width >> 1; // Bit maniupulation is just plan cooler than division.
+  int newSizeY = height >> 1;
   int newChans = 3;
 
-  unsigned char *output_img = malloc(newSizeX * newSizeY * newChans);
+  if (newSizeX > 300) {
+    newSizeX = newSizeX >> 1;
+  }
+  if (newSizeY > 300) {
+    newSizeY = newSizeY >> 1;
+  }
 
-  // Actually calling resize.
+  unsigned char *output_img = malloc(newSizeX * newSizeY * newChans);
   stbir_resize_uint8_srgb(image, width, height, 0, output_img, newSizeX,
                           newSizeY, 0, newChans);
 
-  // Writing to disk.
+  // Writing resized image to disk.
   stbi_write_jpg("temp.jpg", newSizeX, newSizeY, newChans, output_img, 100);
 
-  // Freeing the previous version of the image from memory.
   stbi_image_free(image);
 
   // Loading the resized image into memory.
@@ -58,8 +68,10 @@ void ConvertToAscii(char path[60]) {
 
   // Iterator to keep track of new lines.
   int i;
+
   // Loop through all of the image data, convert it to black and white, and
   // print character based on brightness.
+
   for (unsigned char *p = resized_image;
        p != resized_image + resized_image_size; p += channels) {
 
@@ -68,7 +80,7 @@ void ConvertToAscii(char path[60]) {
     // Black and white conversion
     brightness = *p + *(p + 1) + *(p + 2) / 3.0;
 
-    // Check brightness.
+    // Check brightness. Brightness level is from 0 - 595.
     if (brightness < 85) {
       fprintf(pF, "@");
     } else if (brightness > 85 && brightness < 170) {
@@ -86,6 +98,7 @@ void ConvertToAscii(char path[60]) {
     }
 
     i++;
+
     // Insert new line.
     if (i >= width) {
       fprintf(pF, "\n");
@@ -97,6 +110,22 @@ void ConvertToAscii(char path[60]) {
 
   stbi_image_free(resized_image);
   fclose(pF);
+
+  // Remove temporary scaled down image.
+  if (remove("temp.jpg") == 0) {
+    printf("Temp file removed!\n");
+  }
+}
+
+char *StringLower(char *str) {
+  unsigned char *p = (unsigned char *)str;
+
+  while (*p) {
+    *p = tolower((unsigned char)*p);
+    p++;
+  }
+
+  return str;
 }
 
 int main() {
@@ -106,8 +135,13 @@ int main() {
   int width, height, channels;
 
   do {
-    printf("Please provide an image path.: ");
-    scanf("%s", &path);
+    printf("Please provide an image path, or type \"quit\" to quit. : ");
+    scanf("%s", path);
+
+    if (strcmp(StringLower(path), "quit") == 0) {
+      break;
+    }
+
     if (stbi_info(path, &width, &height, &channels) != 0) {
       queryUser = 0;
       printf("Image found! Converting... \n");
