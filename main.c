@@ -41,12 +41,10 @@ void ConvertToAscii(char path[60]) {
   int newSizeY = height >> 1;
   int newChans = 3;
 
-  if (newSizeX > 300) {
+  do {
     newSizeX = newSizeX >> 1;
-  }
-  if (newSizeY > 300) {
     newSizeY = newSizeY >> 1;
-  }
+  } while (newSizeX > 300);
 
   unsigned char *output_img = malloc(newSizeX * newSizeY * newChans);
   stbir_resize_uint8_srgb(image, width, height, 0, output_img, newSizeX,
