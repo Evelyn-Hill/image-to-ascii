@@ -2,7 +2,6 @@
  * Author: Evelyn Plum Hill
  * Date: 2020-03-24
  * Purpose: To convert a png image to "Ascii art".
- *
  */
 
 #include <ctype.h>
@@ -20,15 +19,17 @@
 
 void ConvertToAscii(char path[60]) {
 
+  char fileName[30] = "output.txt";
+
   // Open output file.
-  FILE *pF = fopen("output.txt", "w");
+  FILE *pF = fopen(fileName, "w");
 
   int width, height, channels;
 
   // Get image data.
   unsigned char *image = stbi_load(path, &width, &height, &channels, 0);
 
-  printf("Loaded image with width: %d height: %d and channels: %d\n", width,
+  printf("Loaded image with width: %dpx height: %dpx and channels: %d\n", width,
          height, channels);
 
   size_t image_size = width * height * channels;
@@ -41,9 +42,15 @@ void ConvertToAscii(char path[60]) {
   int newChans = 3;
 
   printf("Resizing...\n");
+  int resizeIterations = 0;
   while (newWidth > 300) {
     newWidth = newWidth >> 1;
     newHeight = newHeight >> 1;
+    resizeIterations++;
+  }
+
+  if (resizeIterations != 0) {
+    printf("Halved the file %d times.\n", resizeIterations);
   }
 
   unsigned char *output_img = malloc(newWidth * newHeight * newChans);
@@ -96,7 +103,7 @@ void ConvertToAscii(char path[60]) {
     }
   }
 
-  printf("Image data written to file.\n");
+  printf("Image data written to file \"%s\"\n", fileName);
 
   stbi_image_free(resized_image);
   fclose(pF);
@@ -104,6 +111,8 @@ void ConvertToAscii(char path[60]) {
   // Remove temporary scaled down image.
   if (remove("temp.jpg") == 0) {
     printf("Temp file removed!\n");
+  } else {
+    printf("Error removing temporary file. \n");
   }
 }
 
@@ -125,7 +134,7 @@ int main() {
   int width, height, channels;
 
   do {
-    printf("Please provide an image path, or type \"quit\" to quit. : ");
+    printf("Please provide an image path, or type \"quit\" to quit : ");
     scanf("%s", path);
 
     if (strcmp(StringLower(path), "quit") == 0) {
