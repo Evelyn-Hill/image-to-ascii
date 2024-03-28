@@ -36,22 +36,22 @@ void ConvertToAscii(char path[60]) {
   // Need to half the image size for easier viewing.
   // Defining the memory allocation for the new image.
 
-  int newSizeX =
-      width >> 1; // Bit maniupulation is just plan cooler than division.
-  int newSizeY = height >> 1;
+  int newWidth = width;
+  int newHeight = height;
   int newChans = 3;
 
-  do {
-    newSizeX = newSizeX >> 1;
-    newSizeY = newSizeY >> 1;
-  } while (newSizeX > 300);
+  printf("Resizing...\n");
+  while (newWidth > 300) {
+    newWidth = newWidth >> 1;
+    newHeight = newHeight >> 1;
+  }
 
-  unsigned char *output_img = malloc(newSizeX * newSizeY * newChans);
-  stbir_resize_uint8_srgb(image, width, height, 0, output_img, newSizeX,
-                          newSizeY, 0, newChans);
+  unsigned char *output_img = malloc(newWidth * newHeight * newChans);
+  stbir_resize_uint8_srgb(image, width, height, 0, output_img, newWidth,
+                          newHeight, 0, newChans);
 
   // Writing resized image to disk.
-  stbi_write_jpg("temp.jpg", newSizeX, newSizeY, newChans, output_img, 100);
+  stbi_write_jpg("temp.jpg", newWidth, newHeight, newChans, output_img, 100);
 
   stbi_image_free(image);
 
@@ -61,8 +61,8 @@ void ConvertToAscii(char path[60]) {
 
   size_t resized_image_size = width * height * channels;
 
-  printf("Loaded image with size %dpx by %dpx and %d channels\n", width, height,
-         channels);
+  printf("Loaded resized image with size %dpx by %dpx and %d channels\n", width,
+         height, channels);
 
   // Iterator to keep track of new lines.
   int i;
@@ -78,25 +78,17 @@ void ConvertToAscii(char path[60]) {
     // Black and white conversion
     brightness = *p + *(p + 1) + *(p + 2) / 3.0;
 
+    const char *characters[] = {"@", "&", "*", "/", "^", ".", " "};
+    const int brightnessThresholds[] = {85, 170, 255, 340, 425, 510, 596};
+
     // Check brightness. Brightness level is from 0 - 595.
-    if (brightness < 85) {
-      fprintf(pF, "@");
-    } else if (brightness > 85 && brightness < 170) {
-      fprintf(pF, "$");
-    } else if (brightness > 170 && brightness < 255) {
-      fprintf(pF, "*");
-    } else if (brightness > 255 && brightness < 340) {
-      fprintf(pF, "/");
-    } else if (brightness > 340 && brightness < 425) {
-      fprintf(pF, "^");
-    } else if (brightness > 425 && brightness < 510) {
-      fprintf(pF, ".");
-    } else if (brightness > 510) {
-      fprintf(pF, " ");
+    for (int j = 0; j < sizeof(characters) / sizeof(characters[0]); j++) {
+      if (brightness <= brightnessThresholds[j]) {
+        fprintf(pF, "%s", characters[j]);
+        i++;
+        break;
+      }
     }
-
-    i++;
-
     // Insert new line.
     if (i >= width) {
       fprintf(pF, "\n");
